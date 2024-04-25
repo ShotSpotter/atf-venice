@@ -339,6 +339,11 @@ ifeq ($(findstring clang,$(notdir $(CC))),)
 WARNINGS	+=		-Wunused-but-set-variable -Wmaybe-uninitialized	\
 				-Wpacked-bitfield-compat -Wshift-overflow=2 \
 				-Wlogical-op
+
+# port https://github.com/ARM-software/arm-trusted-firmware/commit/dea23e245f to
+# address invalid GCC 12+ zero-page warning. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523
+TF_CFLAGS	+=      --param=min-pagesize=0
+
 else
 # using clang
 WARNINGS	+=		-Wshift-overflow -Wshift-sign-overflow \
@@ -377,6 +382,8 @@ TF_LDFLAGS		+=	$(TF_LDFLAGS_$(ARCH))
 # LD = gcc (used when GCC LTO is enabled)
 else ifneq ($(findstring gcc,$(notdir $(LD))),)
 # Pass ld options with Wl or Xlinker switches
+# port https://github.com/ARM-software/arm-trusted-firmware/commit/86e489c190 to silence GCC 12 warning
+TF_LDFLAGS		+=	--no-warn-rwx-segments
 TF_LDFLAGS		+=	-Wl,--fatal-warnings -O1
 TF_LDFLAGS		+=	-Wl,--gc-sections
 ifeq ($(ENABLE_LTO),1)
@@ -394,6 +401,7 @@ TF_LDFLAGS		+=	$(subst --,-Xlinker --,$(TF_LDFLAGS_$(ARCH)))
 
 # LD = gcc-ld (ld) or llvm-ld (ld.lld) or other
 else
+TF_LDFLAGS		+=	--no-warn-rwx-segments
 TF_LDFLAGS		+=	--fatal-warnings -O1
 TF_LDFLAGS		+=	--gc-sections
 # ld.lld doesn't recognize the errata flags,
